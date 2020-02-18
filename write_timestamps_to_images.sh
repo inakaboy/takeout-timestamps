@@ -22,10 +22,14 @@ do
 		 echo "***** ERROR couldnt find json for $imgfile *****"
 	fi
 
-	# exiftool has a bug in that it doesn't take into account timezone when outputting in %s (unix timestamp) format, so we need to reconstruct the timestamp
-	/usr/local/bin/exiftool "$imgpath" -createdate -d "%Y:%m:%d %T %z"
-	createdate=`/usr/local/bin/exiftool -s -s -s "$imgpath" -createdate -d "%Y:%m:%d %T %z"`
-	createstamp=`date -j -u -f "%Y:%m:%d %T %z" "$createdate" "+%s"`
+	# exiftool has a bug in that it doesn't extract the timezone when using a specified tag, so we need to parse it from the full output (unamused)
+		#	createdate=`/usr/local/bin/exiftool -s -s -s "$imgpath" -createdate -d "%Y:%m:%d %T %z"` # doesn't work because exiftool doesn't extract the timezone
+	
+  createdate=`exiftool -time:SubSecCreateDate -G1 -s "$imgpath" | grep Composite | sed -E -e 's/(:[0-9]+)\.[0-9]+/\1/g' -e 's/^[^0-9]*//'`
+#	createdate=`/usr/local/bin/exiftool "$imgpath" | sed -n -e 's/^.*Create Date                     : //p' | tail -1`    		## added tail -1 exiftool can output multiple lines of Create Date; take the last one as a hacky solution
+	echo "Create Date		     : $createdate"
+	
+	createstamp=`date -j -u -f "%Y:%m:%d %T%z" "$createdate" "+%s"`
 	echo "Create Date		     : $createstamp"
 
 	
