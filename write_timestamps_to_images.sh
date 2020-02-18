@@ -44,7 +44,7 @@ do
 		
 	edebug "$imgpath		|		$jsonpath"   ## debug
 	if [[ ! -f $jsonpath ]]; then
-		 eerror 'ERROR couldnt find json for $imgfile"'
+		 eerror "ERROR couldnt find json for $imgfile"
 	fi
 
 	# exiftool doesn't output the timezone by default when extracting -CreateDate tag, so
