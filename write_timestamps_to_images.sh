@@ -1,5 +1,30 @@
 #!/bin/bash
 
+
+verbosity=6
+	### verbosity levels
+	crt_lvl=1
+	err_lvl=2
+	wrn_lvl=3
+	dbg_lvl=6
+	
+ 
+## esilent prints output even in silent mode
+function ewarn ()  { verb_lvl=$wrn_lvl elog "WARNING - $@" ;}
+function edebug () { verb_lvl=$dbg_lvl elog "DEBUG --- $@" ;}
+function eerror () { verb_lvl=$err_lvl elog "ERROR --- $@" ;}
+function ecrit ()  { verb_lvl=$crt_lvl elog "FATAL --- $@" ;}
+function edumpvar () { for var in $@ ; do edebug "$var=${!var}" ; done }
+function elog() {
+        if [ $verbosity -ge $verb_lvl ]; then 
+				echo -e "$@"
+#                datestring=`date +"%Y-%m-%d %H:%M:%S"`; echo -e "$datestring - $@"
+        fi
+}
+  
+
+#### START
+
 for imgpath in "$@"
 do
 	# construct json filename
@@ -17,26 +42,22 @@ do
 		jsonpath=${imgpath%/*}/$jsonfile	
 		
 		
-	echo "$imgpath		|		$jsonpath"   ## debug
+	edebug "$imgpath		|		$jsonpath"   ## debug
 	if [[ ! -f $jsonpath ]]; then
-		 echo "***** ERROR couldnt find json for $imgfile *****"
+		 eerror 'ERROR couldnt find json for $imgfile"'
 	fi
 
-	# exiftool has a bug in that it doesn't extract the timezone when using a specified tag, so we need to parse it from the full output (unamused)
-		#	createdate=`/usr/local/bin/exiftool -s -s -s "$imgpath" -createdate -d "%Y:%m:%d %T %z"` # doesn't work because exiftool doesn't extract the timezone
+	# exiftool doesn't output the timezone by default when extracting -CreateDate tag, so
+	# the sed line strips the line header, removes the milliseconds, and removes the colon from the timezone so that we can convert it back to an epoch string via the date command
+	createdate=`/usr/local/bin/exiftool -time:SubSecCreateDate -G1 -s "$imgpath" | grep Composite | sed -E -e 's/(:[0-9]+)\.[0-9]+/\1/g' -e 's/^[^0-9]*//' -e 's/([\+\-][0-9][0-9])\:/ \1/'`
+	edebug "Create Date		     : $createdate"
 	
-  createdate=`exiftool -time:SubSecCreateDate -G1 -s "$imgpath" | grep Composite | sed -E -e 's/(:[0-9]+)\.[0-9]+/\1/g' -e 's/^[^0-9]*//'`
-#	createdate=`/usr/local/bin/exiftool "$imgpath" | sed -n -e 's/^.*Create Date                     : //p' | tail -1`    		## added tail -1 exiftool can output multiple lines of Create Date; take the last one as a hacky solution
-	echo "Create Date		     : $createdate"
-	
-	createstamp=`date -j -u -f "%Y:%m:%d %T%z" "$createdate" "+%s"`
-	echo "Create Date		     : $createstamp"
-
+	createstamp=`date -j -u -f "%Y:%m:%d %T %z" "$createdate" "+%s"`
+	edebug "Create Date		     : $createstamp"
 	
 	utime=`/usr/local/bin/jq -r <"$jsonpath" '.photoTakenTime.timestamp'`
-	echo "JSON date		     : $utime"
-	echo "JSON date		     :" `date -r $utime +"%Y:%m:%d %T %z"`
-#	echo "JSON date		     :" `date -u -r $utime +"%Y:%m:%d %T %z"`
+	edebug "JSON date		     : $utime"
+	edebug "JSON date		     :" `date -r $utime +"%Y:%m:%d %T %z"`
 	
 	# Check whether there is existing metadata
 	
