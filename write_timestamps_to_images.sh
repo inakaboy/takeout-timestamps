@@ -1,26 +1,19 @@
 #!/bin/bash
 
 
-verbosity=6
+verbosity=2
 	### verbosity levels
 	crt_lvl=1
 	err_lvl=2
 	wrn_lvl=3
 	dbg_lvl=6
 	
- 
-## esilent prints output even in silent mode
 function ewarn ()  { verb_lvl=$wrn_lvl elog "WARNING - $@" ;}
 function edebug () { verb_lvl=$dbg_lvl elog "DEBUG --- $@" ;}
 function eerror () { verb_lvl=$err_lvl elog "ERROR --- $@" ;}
 function ecrit ()  { verb_lvl=$crt_lvl elog "FATAL --- $@" ;}
 function edumpvar () { for var in $@ ; do edebug "$var=${!var}" ; done }
-function elog() {
-        if [ $verbosity -ge $verb_lvl ]; then 
-				echo -e "$@"
-#                datestring=`date +"%Y-%m-%d %H:%M:%S"`; echo -e "$datestring - $@"
-        fi
-}
+function elog() { if [ $verbosity -ge $verb_lvl ]; then echo -e "$@"; fi }
   
 
 #### START
